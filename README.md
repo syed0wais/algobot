@@ -1,10 +1,9 @@
 # AlgoBot: Automated Trading Strategies
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange)
-![Scikit-learn](https://img.shields.io/badge/Scikit--learn-1.x-green)
-![Pandas](https://img.shields.io/badge/Pandas-1.x-yellow)
-![Numpy](https://img.shields.io/badge/Numpy-1.x-purple)
+![LSTM](https://img.shields.io/badge/LSTM-Neural%20Network-red)
+![YFinance](https://img.shields.io/badge/YFinance-Latest-brightgreen)
+![TextBlob](https://img.shields.io/badge/TextBlob-Latest-lightgrey)
 
 This project explores automated trading strategies using machine learning.  It currently focuses on implementing and evaluating various algorithmic approaches, with the potential for future expansion to include sentiment analysis and other advanced techniques.
 
@@ -41,15 +40,13 @@ This project is currently focused on developing and testing different algorithmi
 3.  Create a virtual environment (recommended):
 
     ```bash
-    python3 -m venv .venv  # Or python -m venv .venv
+    python3 -m venv .venv  
     ```
 
 4.  Activate the virtual environment:
 
     ```bash
-    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-    ```
-
+    source .venv/bin/activate 
 5.  Install the required packages:
 
     ```bash
@@ -63,7 +60,7 @@ This project is currently focused on developing and testing different algorithmi
 2.  **Running a Strategy:** Each strategy is implemented in its own Python file (e.g., `moving_average.py`, `rsi_strategy.py`).  To run a specific strategy, execute the corresponding script:
 
     ```bash
-    python3 sentiment.py  # Example
+  
     python3 app.py      # Example
     ```
 
@@ -71,4 +68,3 @@ This project is currently focused on developing and testing different algorithmi
 
 3.  **Analyzing Results:** The output of each strategy script will typically include performance metrics and potentially charts (if you've added visualization).  *(Consider adding more robust reporting and visualization in the future.)*
 
-### Project Structure
