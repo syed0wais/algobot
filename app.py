@@ -3,9 +3,8 @@ warnings.filterwarnings('ignore', category=Warning)
 
 import numpy as np
 import pandas as pd
-import matplotlib
-matplotlib.use('Agg')  # Set the backend to Agg before importing pyplot
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 from flask import Flask, render_template, request, send_file
@@ -14,7 +13,6 @@ import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 import os
 from sentiment import get_news_articles, analyze_sentiment_of_articles, generate_signal
-plt.style.use("fivethirtyeight")
 
 app = Flask(__name__)
 
@@ -42,7 +40,7 @@ def index():
             
             # Define the start and end dates for stock data
             start = dt.datetime(2000, 1, 1)
-            end = dt.datetime(2024, 10, 1)
+            end = dt.datetime.now()  # This will get data up to today
             
             # Download stock data
             df = yf.download(stock, start=start, end=end)
@@ -84,50 +82,87 @@ def index():
             y_predicted = y_predicted * scale_factor
             y_test = y_test * scale_factor
             
-            # Plot 1: Closing Price vs Time Chart with 20 & 50 Days EMA
-            plt.clf()  # Clear any existing plots
-            fig1, ax1 = plt.subplots(figsize=(12, 6))
-            ax1.plot(df.Close, 'y', label='Closing Price')
-            ax1.plot(ema20, 'g', label='EMA 20')
-            ax1.plot(ema50, 'r', label='EMA 50')
-            ax1.set_title("Closing Price vs Time (20 & 50 Days EMA)")
-            ax1.set_xlabel("Time")
-            ax1.set_ylabel("Price")
-            ax1.legend()
-            ema_chart_path = os.path.join("static", "ema_20_50.png")
-            plt.savefig(ema_chart_path)
-            plt.close(fig1)
-            
             # Plot 2: Closing Price vs Time Chart with 100 & 200 Days EMA
-            plt.clf()  # Clear any existing plots
-            fig2, ax2 = plt.subplots(figsize=(12, 6))
-            ax2.plot(df.Close, 'y', label='Closing Price')
-            ax2.plot(ema100, 'g', label='EMA 100')
-            ax2.plot(ema200, 'r', label='EMA 200')
-            ax2.set_title("Closing Price vs Time (100 & 200 Days EMA)")
-            ax2.set_xlabel("Time")
-            ax2.set_ylabel("Price")
-            ax2.legend()
-            ema_chart_path_100_200 = os.path.join("static", "ema_100_200.png")
-            plt.savefig(ema_chart_path_100_200)
-            plt.close(fig2)
-            
+            fig2 = go.Figure()
+            fig2.add_trace(go.Scatter(x=df.index, y=df.Close, name='Closing Price', line=dict(color='yellow')))
+            fig2.add_trace(go.Scatter(x=df.index, y=ema100, name='EMA 100', line=dict(color='green')))
+            fig2.add_trace(go.Scatter(x=df.index, y=ema200, name='EMA 200', line=dict(color='red')))
+            fig2.update_layout(
+                title="Closing Price vs Time (100 & 200 Days EMA)",
+                xaxis_title="Time",
+                yaxis_title="Price",
+                template='plotly_dark'
+            )
+            plot_path_ema_100_200 = fig2.to_html(full_html=False)
+
             # Plot 3: Prediction vs Original Trend
-            plt.clf()  # Clear any existing plots
-            fig3, ax3 = plt.subplots(figsize=(12, 6))
-            ax3.plot(y_test, 'g', label="Original Price", linewidth=1)
-            ax3.plot(y_predicted, 'r', label="Predicted Price", linewidth=1)
-            ax3.set_title("Prediction vs Original Trend")
-            ax3.set_xlabel("Time")
-            ax3.set_ylabel("Price")
-            ax3.legend()
-            prediction_chart_path = os.path.join("static", "stock_prediction.png")
-            plt.savefig(prediction_chart_path)
-            plt.close(fig3)
+            fig3 = go.Figure()
             
-            # Clean up
-            plt.close('all')
+            # Create date range for x-axis
+            prediction_dates = df.index[-(len(y_test)):]
             
+            # Create future dates for prediction
+            last_date = df.index[-1]
+            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=2, freq='B')
+            
+            # Get the last 100 days of data for future prediction
+            last_100_days = df['Close'].tail(100).values.reshape(-1, 1)
+            
+            # Scale the last 100 days using the same scaling factor as before
+            last_100_days_scaled = last_100_days / scale_factor
+            
+            # Prepare input for future prediction
+            X_future = last_100_days_scaled.reshape(1, 100, 1)
+            
+            # Make future predictions
+            future_pred = model.predict(X_future)
+            
+            # Scale back predictions using the same scale factor
+            future_pred = future_pred * scale_factor
+            
+            # Get the last actual prediction to ensure continuity
+            last_prediction = y_predicted[-1]
+            
+            # Adjust future predictions to maintain trend from last prediction
+            adjustment = last_prediction - future_pred[0][0]
+            future_pred = future_pred + adjustment
+            
+            # Combine current and future predictions
+            all_dates = prediction_dates.union(future_dates)
+            extended_predictions = np.append(y_predicted.flatten(), future_pred.flatten())
+            
+            # Plot original price (green line)
+            fig3.add_trace(go.Scatter(
+                x=prediction_dates,
+                y=y_test,
+                name='Original Price',
+                line=dict(color='green', width=2)
+            ))
+            
+            # Plot predicted price including future (red line)
+            fig3.add_trace(go.Scatter(
+                x=all_dates,
+                y=extended_predictions,
+                name='Predicted Price',
+                line=dict(color='red', width=2)
+            ))
+            
+            fig3.update_layout(
+                title="Prediction vs Original Trend",
+                xaxis_title="Time",
+                yaxis_title="Price",
+                template='plotly_dark',
+                hovermode='x unified',
+                showlegend=True,
+                legend=dict(
+                    yanchor="top",
+                    y=0.99,
+                    xanchor="left",
+                    x=0.01
+                )
+            )
+            plot_path_prediction = fig3.to_html(full_html=False)
+
             # Save dataset as CSV
             csv_file_path = os.path.join("static", f"{stock}_dataset.csv")
             df.to_csv(csv_file_path)
@@ -136,17 +171,16 @@ def index():
             api_key = '84304d30650d4d959fee116667241dda'
             articles = get_news_articles(stock, api_key)
             sentiment_scores = analyze_sentiment_of_articles(articles)
-            _, avg_sentiment = generate_signal(sentiment_scores)  # Using _ to ignore the signal
-            
+            _, avg_sentiment = generate_signal(sentiment_scores)
+
             return render_template('index.html',
-                                plot_path_ema_20_50=ema_chart_path,
-                                plot_path_ema_100_200=ema_chart_path_100_200,
-                                plot_path_prediction=prediction_chart_path,
+                                plot_path_ema_100_200=plot_path_ema_100_200,
+                                plot_path_prediction=plot_path_prediction,
                                 data_desc=data_desc.to_html(classes='table table-bordered'),
                                 dataset_link=csv_file_path,
                                 sentiment_score=f"{avg_sentiment:.2f}",
                                 stock_symbol=stock)
-                                
+            
         except Exception as e:
             return f"An error occurred: {str(e)}", 500
 
