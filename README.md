@@ -7,6 +7,8 @@
 
 This project explores automated trading strategies using machine learning.  It currently focuses on implementing and evaluating various algorithmic approaches, with the potential for future expansion to include sentiment analysis and other advanced techniques.
 
+(The model is also included in the github repo, you can change it)
+
 ## Project Overview
 
 This project is currently focused on developing and testing different algorithmic trading strategies.  It includes:
@@ -61,7 +63,7 @@ This project is currently focused on developing and testing different algorithmi
 
     ```bash
   
-    python3 app.py      # Example
+    python3 app.py    
     ```
 
     You may need to modify the parameters within each script (e.g., ticker symbol, moving average periods, RSI periods) to customize the backtest.
