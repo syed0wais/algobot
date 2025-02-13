@@ -8,3 +8,4 @@ tensorflow
 pandas_datareader
 vaderSentiment
 plotly
+gunicorn
